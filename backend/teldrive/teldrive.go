@@ -213,6 +213,11 @@ func NewFs(ctx context.Context, name string, root string, config configmap.Mappe
 		return nil, err
 	}
 
+	if opt.ChannelID < 0 {
+		channnelId := strconv.FormatInt(opt.ChannelID, 10)
+		opt.ChannelID, _ = strconv.ParseInt(strings.TrimPrefix(channnelId, "-100"), 10, 64)
+	}
+
 	f := &Fs{
 		name:  name,
 		root:  root,
@@ -276,7 +281,7 @@ func NewFs(ctx context.Context, name string, root string, config configmap.Mappe
 	}
 
 	if res != nil && len(res.Files) == 1 && res.Files[0].Type == "file" {
-		f.root = strings.Trim(path.Base(f.root), "/")
+		f.root = strings.Trim(path.Dir(f.root), "/")
 		return f, fs.ErrorIsFile
 	}
 
@@ -291,8 +296,7 @@ func (f *Fs) readMetaDataForPath(ctx context.Context, path string, options *api.
 		Parameters: url.Values{
 			"path":          []string{path},
 			"perPage":       []string{strconv.FormatInt(options.PerPage, 10)},
-			"sort":          []string{"updatedAt"},
-			"order":         []string{"desc"},
+			"sort":          []string{"id"},
 			"op":            []string{"list"},
 			"nextPageToken": []string{options.NextPageToken},
 		},
@@ -572,18 +576,20 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		return err
 	}
 
-	opts := rest.Opts{
-		Method: "DELETE",
-		Path:   "/api/files/" + o.id + "/parts",
-	}
+	if o.size > 0 {
+		opts := rest.Opts{
+			Method: "DELETE",
+			Path:   "/api/files/" + o.id + "/parts",
+		}
 
-	err = o.fs.pacer.Call(func() (bool, error) {
-		resp, err := o.fs.srv.Call(ctx, &opts)
-		return shouldRetry(ctx, resp, err)
-	})
+		err = o.fs.pacer.Call(func() (bool, error) {
+			resp, err := o.fs.srv.Call(ctx, &opts)
+			return shouldRetry(ctx, resp, err)
+		})
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	err = o.fs.updateFileInformation(ctx, &api.UpdateFileInformation{
