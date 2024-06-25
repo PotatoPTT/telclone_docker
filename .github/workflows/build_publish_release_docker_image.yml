@@ -1,9 +1,8 @@
 name: Docker release build
 
 on:
-  push:
-    tags:
-      - '**'
+  release:
+    types: [published]
 
 jobs:
     build:
