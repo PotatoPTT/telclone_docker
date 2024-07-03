@@ -71,6 +71,11 @@ func init() {
 			Advanced: true,
 		},
 			{
+				Help:      "Upload Api Host",
+				Name:      "upload_host",
+				Sensitive: true,
+			},
+			{
 				Name:    "encrypt_files",
 				Default: false,
 				Help:    "Enable Native Teldrive Encryption",
@@ -87,6 +92,7 @@ func init() {
 // Options defines the configuration for this backend
 type Options struct {
 	ApiHost           string               `config:"api_host"`
+	UploadHost        string               `config:"upload_host"`
 	AccessToken       string               `config:"access_token"`
 	ChunkSize         fs.SizeSuffix        `config:"chunk_size"`
 	RandomChunkName   bool                 `config:"random_chunk_name"`
@@ -555,19 +561,29 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	}
 
 	if o.size > 0 {
+
 		opts := rest.Opts{
 			Method: "DELETE",
-			Path:   "/api/files/" + o.id + "/parts",
+			Path:   "/api/uploads/" + uploadInfo.uploadID,
 		}
 
 		err = o.fs.pacer.Call(func() (bool, error) {
 			resp, err := o.fs.srv.Call(ctx, &opts)
 			return shouldRetry(ctx, resp, err)
 		})
-
 		if err != nil {
 			return err
 		}
+		opts = rest.Opts{
+			Method: "DELETE",
+			Path:   "/api/files/" + o.id + "/parts",
+		}
+
+		o.fs.pacer.Call(func() (bool, error) {
+			resp, err := o.fs.srv.Call(ctx, &opts)
+			return shouldRetry(ctx, resp, err)
+		})
+
 	}
 
 	err = o.fs.updateFileInformation(ctx, &api.UpdateFileInformation{
