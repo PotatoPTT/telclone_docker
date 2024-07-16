@@ -33,10 +33,16 @@ type FileInfo struct {
 	ModTime  string `json:"updatedAt"`
 }
 
+type Meta struct {
+	Count       int `json:"count,omitempty"`
+	TotalPages  int `json:"totalPages,omitempty"`
+	CurrentPage int `json:"currentPage,omitempty"`
+}
+
 // ReadMetadataResponse is the response when listing folder contents
 type ReadMetadataResponse struct {
-	Files         []FileInfo `json:"results"`
-	NextPageToken string     `json:"nextPageToken,omitempty"`
+	Files []FileInfo `json:"files"`
+	Meta  Meta       `json:"meta"`
 }
 
 // UploadInfo is the response when initiating an upload
@@ -78,10 +84,8 @@ type Download struct {
 
 // MetadataRequestOptions represents all the options when listing folder contents
 type MetadataRequestOptions struct {
-	PerPage       int64
-	SearchField   string
-	Search        string
-	NextPageToken string
+	Page  int64
+	Limit int64
 }
 
 // CreateFolderRequest is used for creating a folder
@@ -139,8 +143,10 @@ type UpdateFileInformation struct {
 	Name      string     `json:"name,omitempty"`
 	Type      string     `json:"type,omitempty"`
 	UpdatedAt string     `json:"updatedAt,omitempty"`
+	CreatedAt string     `json:"createdAt,omitempty"`
 	Parts     []FilePart `json:"parts,omitempty"`
 	Size      int64      `json:"size,omitempty"`
+	UploadId  string     `json:"uploadId,omitempty"`
 }
 
 // RemoveFileRequest is used for deleting a file
